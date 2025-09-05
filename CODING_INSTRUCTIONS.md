@@ -26,8 +26,8 @@ This project is a Quarkus-based REST API that provides AI analysis capabilities 
 
 ## Technology Stack
 
-- **Framework**: Quarkus 3.6.4
-- **Java Version**: 17 (minimum)
+- **Framework**: Quarkus 3.26.2 (Latest LTS)
+- **Java Version**: 21 (LTS with modern language features)
 - **Build Tool**: Maven 3.x
 - **Testing**: JUnit 5, Rest Assured
 - **Documentation**: OpenAPI 3, Swagger UI
@@ -66,6 +66,16 @@ sscodeagent03/
 
 ## Java Coding Standards
 
+### Java 21 Language Features
+This project leverages modern Java 21 features for better code quality and maintainability:
+
+- **Records**: Use records for immutable data carriers instead of traditional classes with getters/setters
+- **Pattern Matching**: Leverage pattern matching in switch expressions and instanceof checks
+- **Text Blocks**: Use text blocks for multi-line strings, especially for JSON, SQL, or HTML content
+- **Sealed Classes**: Use sealed classes for controlled type hierarchies
+- **Switch Expressions**: Prefer switch expressions over switch statements where appropriate
+- **var**: Use var for local variable type inference when it improves readability
+
 ### Naming Conventions
 - **Classes**: PascalCase (e.g., `AiAnalysisService`)
 - **Methods**: camelCase (e.g., `processAnalysis`)
@@ -87,7 +97,7 @@ sscodeagent03/
 package com.example.service;
 
 import java.util.Map;
-import java.util.HashMap;
+import java.util.Set;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import com.example.model.AiAnalysisRequest;
@@ -96,6 +106,7 @@ import com.example.model.AiAnalysisRequest;
 public class ExampleService {
     
     private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final Set<String> ALLOWED_FORMATS = Set.of("json", "text", "markdown");
     
     @Inject
     AnotherService anotherService;
@@ -105,19 +116,34 @@ public class ExampleService {
             throw new IllegalArgumentException("Request cannot be null");
         }
         
-        Map<String, String> result = new HashMap<>();
-        // Implementation here
-        return result;
+        // Use switch expression for response format handling
+        var responseType = switch (request.getResponseFormat()) {
+            case 0 -> "text";
+            case 1 -> "json";
+            default -> throw new IllegalArgumentException("Invalid response format");
+        };
+        
+        return Map.of("result", "processed", "format", responseType);
     }
+    
+    // Use text blocks for multi-line content
+    private static final String DEFAULT_PROMPT = """
+        You are an AI assistant that analyzes content.
+        Please provide a detailed analysis of the following content:
+        - Structure and organization
+        - Key themes and topics
+        - Recommendations for improvement
+        """;
 }
 ```
 
 ### Class Design Principles
 - **Single Responsibility**: Each class should have one reason to change
 - **Dependency Injection**: Use CDI annotations (`@Inject`, `@ApplicationScoped`)
-- **Immutability**: Prefer immutable objects when possible
+- **Immutability**: Prefer immutable objects when possible - use Records for data carriers
 - **Null Safety**: Always validate inputs and handle null cases
 - **Exception Handling**: Use appropriate exception types and meaningful messages
+- **Modern Java**: Leverage Java 21 features for cleaner, more maintainable code
 
 ## Quarkus-Specific Guidelines
 
@@ -155,15 +181,33 @@ public class AiAnalysisResource {
 ```
 
 ### File Upload Handling
-**Note**: Replace deprecated `@MultipartForm` with current Quarkus multipart handling:
+**Current approach**: Uses modern Quarkus multipart handling with `@RestForm`:
 
 ```java
-// Preferred approach
+// Current recommended approach
 @POST
 @Consumes(MediaType.MULTIPART_FORM_DATA)
 public Response uploadFile(@RestForm("file") FileUpload file,
                           @RestForm("text") String text) {
     // Implementation
+}
+```
+
+### Modern Java Features in Quarkus
+```java
+// Use records for configuration classes
+public record AiConfig(String endpoint, String apiKey, String deploymentName) {}
+
+// Use sealed classes for controlled hierarchies
+public sealed interface AnalysisResult permits TextResult, JsonResult, ErrorResult {}
+
+// Pattern matching with switch expressions
+public String formatResult(AnalysisResult result) {
+    return switch (result) {
+        case TextResult(var content) -> content;
+        case JsonResult(var data) -> data.toString();
+        case ErrorResult(var error) -> "Error: " + error;
+    };
 }
 ```
 
@@ -337,17 +381,25 @@ azure.ai.foundry.endpoint=${AZURE_AI_FOUNDRY_ENDPOINT}
 ## Migration Notes
 
 ### Current Technical Debt
-1. **Deprecated MultipartForm**: Replace with `@RestForm` annotations
-2. **Invalid Configuration**: Remove `quarkus.http.body.multipart.uploads-enabled`
-3. **Missing Validation**: Add comprehensive input validation
-4. **Limited Testing**: Expand test coverage
+1. **URL Constructor Deprecation**: Replace deprecated URL constructor in WebScrapingService
+2. **Legacy Data Classes**: Convert data transfer objects to Records where appropriate
+3. **Missing Pattern Matching**: Opportunities to use modern Java 21 pattern matching
+4. **Text Block Opportunities**: Multi-line strings that could use text blocks
+5. **Switch Statement Updates**: Convert traditional switch statements to switch expressions
 
 ### Immediate Actions Required
-1. Update multipart form handling
-2. Fix configuration warnings
-3. Add comprehensive input validation
-4. Expand test coverage
-5. Implement proper error handling patterns
+1. Fix URL constructor deprecation warning
+2. Convert appropriate DTOs to Records for immutability and reduced boilerplate
+3. Implement pattern matching in switch expressions where applicable
+4. Use text blocks for system messages and multi-line content
+5. Update Maven plugins to latest stable versions
+6. Add comprehensive input validation patterns using modern Java features
+
+### Recent Improvements
+✅ **Updated to Quarkus 3.26.2**: Latest LTS version with all security updates
+✅ **Java 21 Support**: Full support for modern Java features
+✅ **Modern Multipart Handling**: Using `@RestForm` instead of deprecated approaches
+✅ **Updated Dependencies**: LangChain4j 0.25.0 and other current dependencies
 
 ---
 

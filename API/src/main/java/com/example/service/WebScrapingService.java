@@ -48,7 +48,7 @@ public class WebScrapingService {
     }
     
     /**
-     * Validate URL format
+     * Validate URL format using modern URI API
      */
     public boolean isValidUrl(String url) {
         if (url == null || url.trim().isEmpty()) {
@@ -56,8 +56,10 @@ public class WebScrapingService {
         }
         
         try {
-            java.net.URL urlObj = new java.net.URL(url);
-            return urlObj.getProtocol().equals("http") || urlObj.getProtocol().equals("https");
+            var uri = java.net.URI.create(url);
+            var urlObj = uri.toURL();
+            var protocol = urlObj.getProtocol();
+            return "http".equals(protocol) || "https".equals(protocol);
         } catch (Exception e) {
             return false;
         }

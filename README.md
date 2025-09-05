@@ -8,7 +8,7 @@ A Quarkus-based AI analysis API that provides intelligent content analysis using
 - **AI-Powered Analysis**: Integration with Azure AI Foundry for advanced content analysis
 - **Configurable System Messages**: Predefined messages for SEO analysis and Java code review
 - **RESTful API**: Clean, well-documented REST endpoints with OpenAPI/Swagger support
-- **Modern Stack**: Built with Quarkus 3.6.4, Java 17, and modern cloud-native technologies
+- **Modern Stack**: Built with Quarkus 3.26.2, Java 21, and modern cloud-native technologies
 
 ## Quick Start
 
@@ -29,8 +29,8 @@ Visit http://localhost:8080/q/swagger-ui/ for API documentation.
 This project follows strict coding standards and best practices. Please review the [Coding Instructions](./CODING_INSTRUCTIONS.md) before contributing.
 
 ### Key Technologies
-- Quarkus 3.6.4 (Cloud-native Java framework)
-- Java 17+ (Modern Java features)
+- Quarkus 3.26.2 (Cloud-native Java framework)
+- Java 21 (Modern Java features and performance)
 - Azure AI Foundry (AI/ML capabilities)
 - LangChain4j (AI integration framework)
 - Maven (Build and dependency management)
