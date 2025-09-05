@@ -48,7 +48,7 @@ public class WebScrapingService {
     }
     
     /**
-     * Validate URL format using modern URI API
+     * Validate URL format using modern URI API (fixes Java 20+ deprecation)
      */
     public boolean isValidUrl(String url) {
         if (url == null || url.trim().isEmpty()) {
@@ -56,10 +56,18 @@ public class WebScrapingService {
         }
         
         try {
+            // Modern approach: Use URI first, then convert to URL if needed
             var uri = java.net.URI.create(url);
-            var urlObj = uri.toURL();
-            var protocol = urlObj.getProtocol();
-            return "http".equals(protocol) || "https".equals(protocol);
+            
+            // Validate that it's a valid URI with scheme and host
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                return false;
+            }
+            
+            // Check that it's HTTP or HTTPS
+            var scheme = uri.getScheme().toLowerCase();
+            return "http".equals(scheme) || "https".equals(scheme);
+            
         } catch (Exception e) {
             return false;
         }

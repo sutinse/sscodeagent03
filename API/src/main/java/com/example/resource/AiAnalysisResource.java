@@ -19,7 +19,7 @@ import jakarta.validation.constraints.Max;
 import java.util.Map;
 
 /**
- * REST API for AI analysis
+ * REST API for AI analysis with modern Java 21 features
  */
 @Path("/api/ai")
 @Tag(name = "AI Analysis", description = "AI analysis operations using Azure AI Foundry")
@@ -30,6 +30,35 @@ public class AiAnalysisResource {
     
     @Inject
     SystemMessageService systemMessageService;
+    
+    // Modern text block for error response template
+    private static final String ERROR_RESPONSE_TEMPLATE = """
+        {
+            "error": "%s",
+            "timestamp": "%s",
+            "path": "/api/ai/analyze",
+            "status": %d,
+            "message": "Request processing failed. Please check your input and try again."
+        }
+        """;
+    
+    private static final String HEALTH_CHECK_RESPONSE = """
+        {
+            "status": "UP",
+            "service": "AI Analysis API",
+            "version": "1.0.0",
+            "java_version": "%s",
+            "java_vendor": "%s", 
+            "timestamp": "%s",
+            "features": [
+                "Multi-format content analysis",
+                "Azure AI Foundry integration",
+                "File upload support",
+                "Web content scraping",
+                "Configurable system messages"
+            ]
+        }
+        """;
     
     @POST
     @Path("/analyze")
@@ -46,14 +75,15 @@ public class AiAnalysisResource {
                                   @RestForm("customSystemMessage") String customSystemMessage,
                                   @RestForm("responseFormat") @Min(0) @Max(1) Integer responseFormat) {
         try {
-            // Create request object from form parameters
-            AiAnalysisRequest request = new AiAnalysisRequest();
-            request.setText(text);
-            request.setFile(file);
-            request.setWebUrl(webUrl);
-            request.setSystemMessageId(systemMessageId);
-            request.setCustomSystemMessage(customSystemMessage);
-            request.setResponseFormat(responseFormat != null ? responseFormat : 0);
+            // Create request object from form parameters using modern record constructor
+            var request = new AiAnalysisRequest(
+                text, 
+                file, 
+                webUrl, 
+                systemMessageId, 
+                customSystemMessage, 
+                responseFormat
+            );
             
             var result = aiAnalysisService.processAnalysis(request);
             
@@ -96,13 +126,12 @@ public class AiAnalysisResource {
         description = "Check the health status of the AI service"
     )
     public Response healthCheck() {
-        var health = Map.of(
-            "status", "UP",
-            "service", "AI Analysis API",
-            "version", "1.0.0",
-            "java_version", System.getProperty("java.version"),
-            "timestamp", java.time.Instant.now().toString()
+        var healthResponse = HEALTH_CHECK_RESPONSE.formatted(
+            System.getProperty("java.version"),
+            System.getProperty("java.vendor"),
+            java.time.Instant.now().toString()
         );
-        return Response.ok(health).build();
+        
+        return Response.ok(healthResponse, MediaType.APPLICATION_JSON).build();
     }
 }

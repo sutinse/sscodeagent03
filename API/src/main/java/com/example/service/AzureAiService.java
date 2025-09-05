@@ -59,32 +59,50 @@ public class AzureAiService {
     }
     
     /**
-     * Generate AI response using system message and user content
+     * Generate AI response using system message and user content with enhanced error handling
      */
     public String generateResponse(String systemMessageText, String userContent) {
         try {
-            SystemMessage systemMessage = SystemMessage.from(systemMessageText);
-            UserMessage userMessage = UserMessage.from(userContent);
+            var systemMessage = SystemMessage.from(systemMessageText);
+            var userMessage = UserMessage.from(userContent);
             
-            dev.langchain4j.data.message.ChatMessage[] messages = {systemMessage, userMessage};
-            
-            AiMessage response = getChatModel().generate(List.of(systemMessage, userMessage)).content();
+            var messages = List.of(systemMessage, userMessage);
+            var response = getChatModel().generate(messages).content();
             
             return response.text();
             
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate AI response: " + e.getMessage(), e);
+            // Enhanced error handling with specific exception types
+            var errorMessage = switch (e) {
+                case IllegalArgumentException iae -> 
+                    "Invalid input parameters: " + iae.getMessage();
+                case RuntimeException re when re.getCause() instanceof java.net.ConnectException -> 
+                    "Failed to connect to Azure AI service: " + re.getMessage();
+                case RuntimeException re when re.getMessage().contains("timeout") -> 
+                    "Request timed out while communicating with Azure AI service";
+                default -> 
+                    "Failed to generate AI response: " + e.getMessage();
+            };
+            throw new RuntimeException(errorMessage, e);
         }
     }
     
     /**
-     * Create embedding for text
+     * Create embedding for text with enhanced error handling
      */
     public Embedding createEmbedding(String text) {
         try {
             return getEmbeddingModel().embed(text).content();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create embedding: " + e.getMessage(), e);
+            var errorMessage = switch (e) {
+                case IllegalArgumentException iae -> 
+                    "Invalid text for embedding: " + iae.getMessage();
+                case RuntimeException re when re.getCause() instanceof java.net.ConnectException -> 
+                    "Failed to connect to Azure Embedding service: " + re.getMessage();
+                default -> 
+                    "Failed to create embedding: " + e.getMessage();
+            };
+            throw new RuntimeException(errorMessage, e);
         }
     }
     
