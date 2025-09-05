@@ -18,7 +18,8 @@ public class AiAnalysisResourceTest {
              .statusCode(200)
              .contentType(ContentType.JSON)
              .body("status", equalTo("UP"))
-             .body("service", equalTo("AI Analysis API"));
+             .body("service", equalTo("AI Analysis API"))
+             .body("version", equalTo("1.0.0"));
     }
 
     @Test
@@ -36,6 +37,18 @@ public class AiAnalysisResourceTest {
     public void testAnalyzeWithoutRequiredParameters() {
         given()
           .contentType(ContentType.MULTIPART)
+          .when().post("/api/ai/analyze")
+          .then()
+             .statusCode(400);
+    }
+
+    @Test
+    public void testAnalyzeWithInvalidResponseFormat() {
+        given()
+          .contentType(ContentType.MULTIPART)
+          .multiPart("text", "Sample text")
+          .multiPart("systemMessageId", "SystemMessage1")
+          .multiPart("responseFormat", "5") // Invalid value (should be 0 or 1)
           .when().post("/api/ai/analyze")
           .then()
              .statusCode(400);
