@@ -12,7 +12,10 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.jboss.resteasy.reactive.MultipartForm;
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import java.util.Map;
 
 /**
@@ -36,8 +39,22 @@ public class AiAnalysisResource {
         summary = "Analyze content using AI",
         description = "Analyze text, file, or web content using Azure AI Foundry API with predefined or custom system messages"
     )
-    public Response analyzeContent(@MultipartForm AiAnalysisRequest request) {
+    public Response analyzeContent(@RestForm("text") String text,
+                                  @RestForm("file") FileUpload file,
+                                  @RestForm("webUrl") String webUrl,
+                                  @RestForm("systemMessageId") String systemMessageId,
+                                  @RestForm("customSystemMessage") String customSystemMessage,
+                                  @RestForm("responseFormat") @Min(0) @Max(1) Integer responseFormat) {
         try {
+            // Create request object from form parameters
+            AiAnalysisRequest request = new AiAnalysisRequest();
+            request.setText(text);
+            request.setFile(file);
+            request.setWebUrl(webUrl);
+            request.setSystemMessageId(systemMessageId);
+            request.setCustomSystemMessage(customSystemMessage);
+            request.setResponseFormat(responseFormat != null ? responseFormat : 0);
+            
             Object result = aiAnalysisService.processAnalysis(request);
             
             if (request.getResponseFormat() == 1) {

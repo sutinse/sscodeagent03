@@ -98,6 +98,14 @@ curl -X POST http://localhost:8080/api/ai/analyze \
   -F "responseFormat=0"
 ```
 
+## Recent Updates
+
+### Version 1.0.0-SNAPSHOT
+- **Fixed deprecated API usage**: Replaced deprecated `@MultipartForm` with `@RestForm` annotations for better Quarkus 3.6+ compatibility
+- **Configuration cleanup**: Removed invalid `quarkus.http.body.multipart.uploads-enabled` property
+- **Enhanced testing**: Added validation tests for input parameters
+- **Added coding standards**: Comprehensive coding instructions document added to ensure consistent development practices
+
 ## OpenAPI Documentation
 
 When running in development mode, visit:
