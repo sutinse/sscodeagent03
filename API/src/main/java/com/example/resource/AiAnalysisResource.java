@@ -46,22 +46,22 @@ public class AiAnalysisResource {
                                   @RestForm("customSystemMessage") String customSystemMessage,
                                   @RestForm("responseFormat") @Min(0) @Max(1) Integer responseFormat) {
         try {
-            // Create request object from form parameters
-            AiAnalysisRequest request = new AiAnalysisRequest();
-            request.setText(text);
-            request.setFile(file);
-            request.setWebUrl(webUrl);
-            request.setSystemMessageId(systemMessageId);
-            request.setCustomSystemMessage(customSystemMessage);
-            request.setResponseFormat(responseFormat != null ? responseFormat : 0);
+            // Create request object using Record constructor
+            // Validation happens automatically in the compact constructor
+            var request = new AiAnalysisRequest(
+                text, 
+                file, 
+                webUrl, 
+                systemMessageId, 
+                customSystemMessage, 
+                responseFormat
+            );
             
             var result = aiAnalysisService.processAnalysis(request);
             
             // Use switch expression for response format handling
-            var mediaType = switch (request.getResponseFormat()) {
-                case 1 -> MediaType.APPLICATION_JSON;
-                default -> MediaType.TEXT_PLAIN;
-            };
+            var mediaType = request.isJsonResponse() ? 
+                MediaType.APPLICATION_JSON : MediaType.TEXT_PLAIN;
             
             return Response.ok(result, mediaType).build();
             

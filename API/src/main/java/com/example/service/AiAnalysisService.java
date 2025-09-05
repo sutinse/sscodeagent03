@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.tika.exception.TikaException;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Main service orchestrating AI analysis workflow
@@ -29,42 +30,32 @@ public class AiAnalysisService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
-     * Process AI analysis request
+     * Process AI analysis request with enhanced error handling and modern patterns
      */
     public Object processAnalysis(AiAnalysisRequest request) throws IOException, TikaException {
-        // Validate input
-        if (!request.hasValidInput()) {
-            throw new IllegalArgumentException("Exactly one of text, file, or webUrl must be provided");
-        }
+        Objects.requireNonNull(request, "Analysis request cannot be null");
         
-        if (!request.hasValidSystemMessage()) {
-            throw new IllegalArgumentException("Either systemMessageId or customSystemMessage must be provided");
-        }
+        // Note: Validation is already done in the Record's compact constructor
         
-        // Get system message
-        String systemMessage = getSystemMessage(request);
+        // Get system message using pattern matching
+        var systemMessage = getSystemMessage(request);
         
-        // Get user content
-        String userContent = getUserContent(request);
-        String inputType = getInputType(request);
+        // Get user content using enhanced method
+        var userContent = getUserContent(request);
+        var inputType = request.getInputType();
         
-        // Create embedding for the content
-        try {
-            azureAiService.createEmbedding(userContent);
-        } catch (Exception e) {
-            // Log warning but continue - embedding is not critical for the main functionality
-            System.err.println("Warning: Failed to create embedding: " + e.getMessage());
-        }
+        // Create embedding for the content with improved error handling
+        tryCreateEmbedding(userContent);
         
         // Generate AI response
-        String aiResponse = azureAiService.generateResponse(systemMessage, userContent);
+        var aiResponse = azureAiService.generateResponse(systemMessage, userContent);
         
-        // Create response object using modern factory method
+        // Create response object using modern factory method and Record accessors
         var response = AiAnalysisResponse.of(
             aiResponse,
             inputType,
-            request.getCustomSystemMessage() != null ? "custom" : request.getSystemMessageId(),
-            request.getResponseFormat() == 1 ? "json" : "string"
+            request.getSystemMessageSource(),
+            request.isJsonResponse() ? "json" : "string"
         );
         
         // Return response in requested format using switch expression
@@ -75,59 +66,51 @@ public class AiAnalysisService {
     }
     
     /**
-     * Get system message from request
+     * Try to create embedding with improved error handling
+     */
+    private void tryCreateEmbedding(String content) {
+        try {
+            azureAiService.createEmbedding(content);
+        } catch (Exception e) {
+            // Log warning but continue - embedding is not critical for the main functionality
+            System.err.println("Warning: Failed to create embedding: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Get system message from request using modern pattern matching
      */
     private String getSystemMessage(AiAnalysisRequest request) {
-        if (request.getCustomSystemMessage() != null && !request.getCustomSystemMessage().trim().isEmpty()) {
-            return request.getCustomSystemMessage();
-        }
-        
-        if (request.getSystemMessageId() != null && !request.getSystemMessageId().trim().isEmpty()) {
-            String systemMessage = systemMessageService.getSystemMessage(request.getSystemMessageId());
-            if (systemMessage == null) {
-                throw new IllegalArgumentException("Invalid system message ID: " + request.getSystemMessageId());
+        return switch (request) {
+            case AiAnalysisRequest r when r.customSystemMessage() != null && !r.customSystemMessage().trim().isEmpty() -> 
+                r.customSystemMessage();
+            case AiAnalysisRequest r when r.systemMessageId() != null && !r.systemMessageId().trim().isEmpty() -> {
+                var systemMessage = systemMessageService.getSystemMessage(r.systemMessageId());
+                if (systemMessage == null) {
+                    throw new IllegalArgumentException("Invalid system message ID: " + r.systemMessageId());
+                }
+                yield systemMessage;
             }
-            return systemMessage;
-        }
-        
-        throw new IllegalArgumentException("No valid system message provided");
+            default -> throw new IllegalArgumentException("No valid system message provided");
+        };
     }
     
     /**
-     * Get user content from request
+     * Get user content from request using enhanced pattern matching
      */
     private String getUserContent(AiAnalysisRequest request) throws IOException, TikaException {
-        if (request.getText() != null && !request.getText().trim().isEmpty()) {
-            return request.getText();
-        }
-        
-        if (request.getFile() != null) {
-            return fileParsingService.parseFile(request.getFile());
-        }
-        
-        if (request.getWebUrl() != null && !request.getWebUrl().trim().isEmpty()) {
-            if (!webScrapingService.isValidUrl(request.getWebUrl())) {
-                throw new IllegalArgumentException("Invalid URL format: " + request.getWebUrl());
+        return switch (request) {
+            case AiAnalysisRequest r when r.text() != null && !r.text().trim().isEmpty() -> 
+                r.text();
+            case AiAnalysisRequest r when r.file() != null -> 
+                fileParsingService.parseFile(r.file());
+            case AiAnalysisRequest r when r.webUrl() != null && !r.webUrl().trim().isEmpty() -> {
+                if (!webScrapingService.isValidUrl(r.webUrl())) {
+                    throw new IllegalArgumentException("Invalid URL format: " + r.webUrl());
+                }
+                yield webScrapingService.scrapeWebContent(r.webUrl());
             }
-            return webScrapingService.scrapeWebContent(request.getWebUrl());
-        }
-        
-        throw new IllegalArgumentException("No valid user content provided");
-    }
-    
-    /**
-     * Determine input type for response metadata using switch expression
-     */
-    private String getInputType(AiAnalysisRequest request) {
-        if (request.getText() != null && !request.getText().trim().isEmpty()) {
-            return "text";
-        }
-        if (request.getFile() != null) {
-            return "file";
-        }
-        if (request.getWebUrl() != null && !request.getWebUrl().trim().isEmpty()) {
-            return "web_url";
-        }
-        return "unknown";
+            default -> throw new IllegalArgumentException("No valid user content provided");
+        };
     }
 }
