@@ -63,7 +63,7 @@ public class AiAnalysisService {
         var response = AiAnalysisResponse.of(
             aiResponse,
             inputType,
-            request.getCustomSystemMessage() != null ? "custom" : request.getSystemMessageId(),
+            request.customSystemMessage() != null ? "custom" : request.systemMessageId(),
             request.getResponseFormat() == 1 ? "json" : "string"
         );
         
@@ -75,17 +75,18 @@ public class AiAnalysisService {
     }
     
     /**
-     * Get system message from request
+     * Get system message from request using pattern matching
      */
     private String getSystemMessage(AiAnalysisRequest request) {
-        if (request.getCustomSystemMessage() != null && !request.getCustomSystemMessage().trim().isEmpty()) {
-            return request.getCustomSystemMessage();
+        // Use pattern matching with conditional logic
+        if (request.customSystemMessage() != null && !request.customSystemMessage().trim().isEmpty()) {
+            return request.customSystemMessage();
         }
         
-        if (request.getSystemMessageId() != null && !request.getSystemMessageId().trim().isEmpty()) {
-            String systemMessage = systemMessageService.getSystemMessage(request.getSystemMessageId());
+        if (request.systemMessageId() != null && !request.systemMessageId().trim().isEmpty()) {
+            var systemMessage = systemMessageService.getSystemMessage(request.systemMessageId());
             if (systemMessage == null) {
-                throw new IllegalArgumentException("Invalid system message ID: " + request.getSystemMessageId());
+                throw new IllegalArgumentException("Invalid system message ID: " + request.systemMessageId());
             }
             return systemMessage;
         }
@@ -94,40 +95,26 @@ public class AiAnalysisService {
     }
     
     /**
-     * Get user content from request
+     * Get user content from request using modern switch expression
      */
     private String getUserContent(AiAnalysisRequest request) throws IOException, TikaException {
-        if (request.getText() != null && !request.getText().trim().isEmpty()) {
-            return request.getText();
-        }
-        
-        if (request.getFile() != null) {
-            return fileParsingService.parseFile(request.getFile());
-        }
-        
-        if (request.getWebUrl() != null && !request.getWebUrl().trim().isEmpty()) {
-            if (!webScrapingService.isValidUrl(request.getWebUrl())) {
-                throw new IllegalArgumentException("Invalid URL format: " + request.getWebUrl());
+        return switch (request.getInputType()) {
+            case "text" -> request.text();
+            case "file" -> fileParsingService.parseFile(request.file());
+            case "web_url" -> {
+                if (!webScrapingService.isValidUrl(request.webUrl())) {
+                    throw new IllegalArgumentException("Invalid URL format: " + request.webUrl());
+                }
+                yield webScrapingService.scrapeWebContent(request.webUrl());
             }
-            return webScrapingService.scrapeWebContent(request.getWebUrl());
-        }
-        
-        throw new IllegalArgumentException("No valid user content provided");
+            default -> throw new IllegalArgumentException("No valid user content provided");
+        };
     }
     
     /**
-     * Determine input type for response metadata using switch expression
+     * Determine input type for response metadata
      */
     private String getInputType(AiAnalysisRequest request) {
-        if (request.getText() != null && !request.getText().trim().isEmpty()) {
-            return "text";
-        }
-        if (request.getFile() != null) {
-            return "file";
-        }
-        if (request.getWebUrl() != null && !request.getWebUrl().trim().isEmpty()) {
-            return "web_url";
-        }
-        return "unknown";
+        return request.getInputType();
     }
 }
