@@ -59,20 +59,19 @@ public class AiAnalysisService {
         // Generate AI response
         String aiResponse = azureAiService.generateResponse(systemMessage, userContent);
         
-        // Create response object
-        AiAnalysisResponse response = new AiAnalysisResponse(
+        // Create response object using modern factory method
+        var response = AiAnalysisResponse.of(
             aiResponse,
             inputType,
             request.getCustomSystemMessage() != null ? "custom" : request.getSystemMessageId(),
             request.getResponseFormat() == 1 ? "json" : "string"
         );
         
-        // Return response in requested format
-        if (request.getResponseFormat() == 1) {
-            return response; // Will be serialized to JSON by JAX-RS
-        } else {
-            return aiResponse; // Return as plain string
-        }
+        // Return response in requested format using switch expression
+        return switch (request.getResponseFormat()) {
+            case 1 -> response; // Will be serialized to JSON by JAX-RS
+            default -> aiResponse; // Return as plain string
+        };
     }
     
     /**
@@ -117,7 +116,7 @@ public class AiAnalysisService {
     }
     
     /**
-     * Determine input type for response metadata
+     * Determine input type for response metadata using switch expression
      */
     private String getInputType(AiAnalysisRequest request) {
         if (request.getText() != null && !request.getText().trim().isEmpty()) {

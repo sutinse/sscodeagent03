@@ -55,13 +55,15 @@ public class AiAnalysisResource {
             request.setCustomSystemMessage(customSystemMessage);
             request.setResponseFormat(responseFormat != null ? responseFormat : 0);
             
-            Object result = aiAnalysisService.processAnalysis(request);
+            var result = aiAnalysisService.processAnalysis(request);
             
-            if (request.getResponseFormat() == 1) {
-                return Response.ok(result, MediaType.APPLICATION_JSON).build();
-            } else {
-                return Response.ok(result, MediaType.TEXT_PLAIN).build();
-            }
+            // Use switch expression for response format handling
+            var mediaType = switch (request.getResponseFormat()) {
+                case 1 -> MediaType.APPLICATION_JSON;
+                default -> MediaType.TEXT_PLAIN;
+            };
+            
+            return Response.ok(result, mediaType).build();
             
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -94,10 +96,12 @@ public class AiAnalysisResource {
         description = "Check the health status of the AI service"
     )
     public Response healthCheck() {
-        Map<String, String> health = Map.of(
+        var health = Map.of(
             "status", "UP",
             "service", "AI Analysis API",
-            "version", "1.0.0"
+            "version", "1.0.0",
+            "java_version", System.getProperty("java.version"),
+            "timestamp", java.time.Instant.now().toString()
         );
         return Response.ok(health).build();
     }
